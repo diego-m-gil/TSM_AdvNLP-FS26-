@@ -3,8 +3,8 @@
 %  Editable. Compile in Overleaf (pdfLaTeX) or locally: pdflatex cheatsheet.tex
 %  Layout: portrait A4, 3 columns, dense. Trim/expand to keep exactly 4 pages.
 % =====================================================================
-\documentclass[12pt]{extarticle} % extsizes: available on Overleaf. If error -> use \documentclass[12pt]{article}
-\usepackage[a4paper,margin=0.8cm]{geometry}
+\documentclass[12pt]{extarticle} % extsizes: available on Overleaf. If error -> use \documentclass[12pt]{article}. Drop to 11pt if it overflows past 4 pages.
+\usepackage[a4paper,margin=0.7cm]{geometry}
 \usepackage{multicol}
 \usepackage{amsmath,amssymb}
 \usepackage{xcolor}
@@ -36,8 +36,8 @@
 \begin{multicols}{3}
 \raggedcolumns
 
-% ============================== PAGE 1 ==============================
-{\color{hdr}\textbf{\normalsize AdvNLP Exam Cheat Sheet}}\hfill\textbf{1/4}
+% ============================== auto-flowing columns (trim to 4 pages) ==============================
+{\color{hdr}\textbf{\normalsize AdvNLP Exam Cheat Sheet}}\hfill\textbf{2 A4 / 4 pp}
 
 \section*{}
 \vspace{-12pt}
@@ -71,25 +71,50 @@ Always \textbf{LAS $\le$ UAS}. Right head + wrong label $\Rightarrow$ UAS yes, L
 Baselines: dict 85\%, most-freq-tag 90\%, SOTA 97\%, human 98\%.\\
 HMM: states=tags(hidden), obs=words. Assumptions: transition $P(t_i|t_{i-1})$, emission $P(w_i|t_i)$.\\
 Tag via Bayes: $\hat t=\arg\max_t P(w|t)P(t)$.\\
-\sub{Viterbi} (DP, best path): $V_{i,t}=\max_{t'}V_{i-1,t'}P(t|t')P(w_i|t)$, cost $O(n|T|^2)$.
+\sub{Viterbi} (DP, best path): $V_{i,t}=\max_{t'}V_{i-1,t'}P(t|t')P(w_i|t)$, cost $O(n|T|^2)$.\\
+Assumptions: \sub{Markov} (tag depends only on prev tag) + \sub{output indep} (word depends only on its tag). Unseen word $\Rightarrow$ emission 0 (needs smoothing). \sub{CRF}: globally normalized, models features over whole seq, less \sub{label bias} than MEMM.
+
+\section{Preprocessing \textnormal{(L1 \(\star\))}}
+\sub{Tokens}=all occurrences; \sub{types}=distinct tokens. Ex: ``The big dog ate my exam questions and the smaller dog ate my homework questions'' $\Rightarrow$ \sub{15 tokens, 10 types}.\\
+\sub{Lemmatize} (needs PoS): ate$\to$eat, smaller$\to$small, ``better''(adj)$\to$good. Stem=crude suffix chop.\\
+\sub{Stopword removal} drops function words. \sub{Traps}: removing \sub{negation} ``not'' flips sentiment to positive; lowercasing ``May''$\to$``may'' loses month/proper-noun (hurts NER/PoS).
+
+\section{Naive Bayes + Smoothing \textnormal{(L4)}}
+$\hat c=\arg\max_c P(c)\prod_i P(w_i|c)$, $P(w|c)=\tfrac{\text{count}(w,c)}{\sum_{w'}\text{count}(w',c)}$.\\
+Token only in class A $\Rightarrow P(w|A){>}0$, $P(w|B){=}0$; one zero kills whole product.\\
+\fbw{P(w|c)=\frac{\text{count}(w,c)+\alpha}{\sum_{w'}\text{count}(w',c)+\alpha|V|}}\\
+\sub{Laplace}=additive with $\alpha{=}1$: prevents zeros without distorting nonzero probs. Use \sub{log} probs (avoid underflow).
+
+\section{Word Embeddings \textnormal{(L1)}}
+\sub{Distributional semantics}: ``know a word by the company it keeps'' (Firth). \sub{One-hot} limit: no similarity between words, sparse, OOV-fail.\\
+\sub{word2vec} = shallow 2-layer NN. \sub{Skip-gram}: predict context from center word; logistic/sigmoid on dot(center,context)$\to$prob. small window=syntactic, large=semantic. \sub{SGNS}: update few negatives ($\propto f^{0.75}$) not full $|V|$ softmax. \sub{CBOW}: predict center from avg context.\\
+\sub{GloVe}=count-based, global co-occurrence matrix factorization (\sub{not} predictive). \sub{fastText}=sum of char n-grams $\Rightarrow$ handles OOV/typos/morphology. All three \sub{static} (1 vec/word) $\Rightarrow$ fail polysemy (``bank''); BERT contextual fixes it. Analogy king$-$man$+$woman$\approx$queen.\\
+\sub{WSD via WordNet}: avg embedding of each sense's gloss words, compare to sentence avg by \sub{cosine}, pick max.
+
+\section{Syntax: Constituency \& PCFG \textnormal{(L5)}}
+\sub{Constituency}=phrase tree (S$\to$NP VP; NP, VP, PP); \sub{dependency}=head$\to$dependent arcs. Both are trees, different views.\\
+\sub{PCFG}: $P(S\!\to\!NP\,VP){=}0.8$ = 80\% of $S$ rewrite as NP+VP; $P(PP\!\to\!P\,NP){=}1.0$=only rule for PP.\\
+\sub{Attachment ambiguity}: ``saw the man with the binoculars'' / ``counts whales from space'' — PP attaches to verb vs noun; parser may pick wrong head.
+
+\section{Information Extraction / NER \textnormal{(L5)}}
+\sub{NER}: PER/ORG/LOC. \sub{IO} scheme fails when 2 same-type entities are adjacent (``Nancy Ken Follett'' looks like 1). \sub{IOB} fixes: \sub{B-} starts each entity, \sub{I-} continues.\\
+\sub{CRF scores$\to$probs} via \sub{softmax}: $[1000,1,2,-30]\!\to\!\approx[1,0,0,0]$.\\
+\sub{Label bias}: locally-normalized models (MEMM) favor low-entropy states (few outgoing transitions) regardless of input; CRF avoids it via global normalization.
 
 \section{Encoders / BERT \textnormal{(L3 \(\star\))}}
 Foundation model: self-supervised pretrain, reuse backbone.\\
 Static (word2vec) vs \sub{contextual} (BERT) embeddings.\\
 \fb{\text{Attn}(Q,K,V)=\text{softmax}\!\big(\tfrac{QK^\top}{\sqrt{d_k}}\big)V}\\
 $\sqrt{d_k}$ = numerical stability. Multi-head: $A$ heads $d_h=d/A$. BERT-Base $d{=}768,A{=}12,d_h{=}64$.\\
-FFN $W_2\sigma(W_1x{+}b_1){+}b_2$ ($768\!\to\!3072\!\to\!768$); residual $x{+}\text{Sub}(x)$; LayerNorm.\\
+\sub{FFN} $W_2\sigma(W_1x{+}b_1){+}b_2$ ($768\!\to\!3072\!\to\!768$): processes \sub{each token independently} with nonlinearity; residual $x{+}\text{Sub}(x)$; LayerNorm.\\
+\sub{Q}=info a token wants (query), \sub{K}=what it offers, \sub{V}=content passed on; attend strength = $q_i\!\cdot\!k_j$. Multi-head $\Rightarrow$ learn different relations. Encoder output = \sub{one contextual vector per token}. Params $\approx (V\!\times\!H)+12LH^2$ (embeddings + $L$ blocks).\\
 \sub{BERT}: encoder-only, bidirectional. MLM mask \textbf{15\%}; NSP (weak, dropped later).\\
 \sub{Fine-tune classif:} prepend [CLS] $\to$ run $\to$ $\hat y=\text{softmax}(Wh_{[CLS]}{+}b)$ $\to$ argmax.\\
 Pooling: mean $\tfrac1n\sum h_i$, max.\\
 \sub{SBERT} (bi-encoder): encode sentences independently, $\cos(f(s_1),f(s_2))$, precomputable $\to$ fast. Fixes BERT $O(N^2)$ pair cost \& anisotropy. Triplet loss $\max(0,d(a,p){-}d(a,n){+}m)$.\\
 \sub{Cross-encoder}=[CLS]$s_1$[SEP]$s_2$, accurate but slow (rerun each pair). Bi-encoder=fast cosine search.
 
-\columnbreak
-% ============================== PAGE-ish continues ==============================
-{\color{hdr}\textbf{RLHF (L7 \(\star\star\))}}\hfill\textbf{}
-
-\section{Alignment: RLHF}
+\section{Alignment: RLHF \textnormal{(L7 \(\star\star\))}}
 Pipeline: prompts $\to$ \sub{SFT} $\to$ human preferences $\to$ \sub{reward model} $\to$ RL (\sub{PPO}).\\
 IFT/SFT: supervised on (prompt,good-resp); gives instruction-following + start policy. Self-Instruct = bootstrap data (label-first for classification).\\
 Why beyond IFT: alignment is \sub{comparative} (which is better?) $\to$ learn from preferences.\\
@@ -107,15 +132,13 @@ obj: $\max_\theta \mathbb E[r_\phi]-\beta D_{KL}[\pi_\theta\|\pi_{SFT}]$.\\
 $\ge0$; $=0$ iff $P{=}Q$; \sub{not symmetric}. $P$=true/ground-truth, $Q$=model/measured. Use $\log_2$ for \sub{bits} ($\log_2 z=\ln z/\ln2$).\\
 Ex: $P{=}[.5,.3,.2],Q{=}[.4,.4,.2]$:\\
 $.5\log_2\tfrac{.5}{.4}+.3\log_2\tfrac{.3}{.4}+0=.1609-.1245=\mathbf{.036}$ bits.\\
-$Q{=}[.85,.10,.05]$: $-.383+.476+.4=\mathbf{.493}$ bits (worse).
+$Q{=}[.85,.10,.05]$: $-.383+.476+.4=\mathbf{.493}$ bits (worse).\\
+\sub{Cross-entropy} $H(p,q)=-\sum_x p(x)\log q(x)=H(p)+D_{KL}(p\|q)$. CE \sub{loss} (one-hot true) $=-\log q_{\text{true}}$. Minimizing CE $\equiv$ minimizing KL to the data.
 
 \section{Hallucination types \textnormal{(L10)}}
 \sub{Factuality} = false vs the world. \sub{Faithfulness} = inconsistent with prompt/context/own reasoning.
 
-\columnbreak
-{\color{hdr}\textbf{DPO (L8 \(\star\star\))}}\hfill\textbf{2/4}
-
-\section{DPO — 13-step derivation}
+\section{DPO — 13-step derivation \textnormal{(L8 \(\star\star\))}}
 \sub{One sentence:} DPO shifts probability mass toward completions humans like and away from disliked ones, \emph{directly} from preference pairs—no reward model, no RL.\\
 Why: RLHF has many parts (reward model + PPO loop + instability). DPO = simple classification-style loss, stable, cheap.\\
 \textbf{Steps:}
@@ -156,16 +179,14 @@ Uses all 4 cells (F1 ignores TN). Ex: 90/10, always "yes": acc=.90 but \sub{MCC=
 NLI: premise+hyp $\to$ entail/contradict/neutral. RTE=binary. WNLI=Winograd pronoun.\\
 Evolution: GLUE$\to$SuperGLUE$\to$HellaSwag$\to$MMLU(57 subj)$\to$MMMU(multimodal). \sub{Contamination}: model saw test online $\to$ inflated. \sub{LiveBench}: rolling, objective scoring.
 
-\columnbreak
-{\color{hdr}\textbf{Text-to-Speech \& Tokenization}}\hfill\textbf{3/4}
-
 \section{Text-to-Speech \textnormal{(L14)}}
 Two stages (trained separately):\\
 1) text$\to$\sub{mel-spectrogram} (Tacotron 2: char emb$\to$conv$\to$biLSTM$\to$attn$\to$AR decoder, 80-dim log-mel + stop).\\
 2) mel$\to$waveform = \sub{vocoder} (WaveNet: AR per-sample $P(x_t|x_{<t})$, dilated causal conv, $\mu$-law 256 cls).\\
 TTS speaker-dependent; ASR speaker-indep. Needs text normalization.\\
 \sub{MOS}: humans rate naturalness \sub{1–5}, MOS=mean. \sub{A/B test}: same sentence, pick better, tally. No good automatic TTS metric.\\
-mel $m=2595\log_{10}(1{+}f/700)$.
+mel $m=2595\log_{10}(1{+}f/700)$.\\
+\sub{Audio basics}: pitch$\approx\log$(freq Hz); loudness$\approx\log$(intensity), dB. \sub{Spectrogram}=|STFT| over time (x=time, y=freq). \sub{MFCC}: mel filterbank $\to\log\to$ \sub{DCT} = spectral envelope (perceptual).
 
 \section{Tokenization \& Embeddings \textnormal{(L1)}}
 Subword balances OOV vs seq length.\\
@@ -187,9 +208,6 @@ Trap: attn for token $i$ uses query $q_i$ + \sub{all keys}.
 \sub{Top-k}: among k highest (fixed). \sub{Top-p}: smallest set cum$\ge p$ (adaptive). Sampling=open-ended.\\
 \sub{LoRA}: $h{=}x(W{+}AB)$, freeze $W$, params $r(d{+}k)\!\ll\!dk$. QLoRA = +4-bit base.\\
 Instruction-tune: CE on (instr,resp), mask instr tokens.
-
-\columnbreak
-{\color{hdr}\textbf{ICL, RAG, Agents, ASR}}\hfill\textbf{4/4}
 
 \section{In-Context Learning \textnormal{(L9)}}
 ICL: condition with examples, \sub{no weight update}; emergent at scale. zero/one/few-shot.\\

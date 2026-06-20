@@ -19,6 +19,7 @@
 - `notes/notes_alignment_RLHF_DPO.md` — ⭐⭐ the single most important file (RLHF + DPO + the 13 steps + Puccinelli's exact Q&A).
 - `notes/notes_puccinelli_core.md` — ⭐ classification metrics, parsing/UAS-LAS, encoders, benchmarking, TTS.
 - `notes/notes_perruchoud_other.md` — breadth for the other lecturer's lectures.
+- `notes/notes_exam_question_playbook.md` — ⭐ **NEW**: synthesized from past **sample exams** + the in-class **Kahoot quizzes**. Recurring question patterns, model answers, and the quiz answer key. Read this the day before.
 - `02_practice_problems.md` — worked practice questions with solutions (do these!).
 - `Cheatsheet/cheatsheet.tex` — your printable 4-page exam cheat sheet (edit + compile in Overleaf).
 - `Cheatsheet/README_cheatsheet.md` — how to compile/print.
@@ -50,6 +51,8 @@ Ranked by expected return. Puccinelli gave explicit hints → treat the ⭐⭐ i
 | ○ | ASR (CTC, WER, wav2vec, Whisper) | L13 | Compute / MC |
 
 **The four "you must be able to compute" skills:** (1) precision/recall/F1 + macro/weighted, (2) UAS/LAS, (3) KL divergence in bits, (4) reward-model/DPO sigmoid+NLL loss values. Puccinelli said so almost verbatim.
+
+> **Insight from past sample exams (2023/2024):** the written part historically opens with **classic-NLP** questions — preprocessing (tokens vs types, lemmatization, stopword/negation traps), Naive-Bayes + **Laplace smoothing**, **Word2Vec/GloVe/fastText**, HMM/Viterbi, constituency/**PCFG**, **IO vs IOB** + label bias, and a big **transformers/BERT** block (positional encoding, MLM+NSP, attention Q/K/V). These are now all in the cheat sheet and in `notes_exam_question_playbook.md`. We don't know if this year matches, but the patterns are stable and cheap to learn — bank them.
 
 ---
 

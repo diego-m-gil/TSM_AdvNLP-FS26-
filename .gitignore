@@ -3,6 +3,10 @@
 .env
 **/.env
 
+# Private exam material — DO NOT publish (mock exams, class quiz screenshots)
+Mock_Exams_PRIVATE/
+_temp/
+
 # Python
 __pycache__/
 *.pyc

@@ -14,7 +14,8 @@ Personal study archive for the **Advanced NLP** master's course, organized for e
 │   ├── notes/
 │   │   ├── notes_alignment_RLHF_DPO.md  # RLHF + DPO (13-step derivation) ⭐
 │   │   ├── notes_puccinelli_core.md     # Classification, parsing/UAS-LAS, encoders, benchmarking, TTS
-│   │   └── notes_perruchoud_other.md    # Tokenization, MT, decoding, ICL, RAG, ASR
+│   │   ├── notes_perruchoud_other.md    # Tokenization, MT, decoding, ICL, RAG, ASR
+│   │   └── notes_exam_question_playbook.md  # Recurring exam-question patterns + answers ⭐
 │   └── Cheatsheet/
 │       ├── cheatsheet.tex               # 4-page A4 exam cheat sheet (LaTeX source)
 │       ├── cheatsheet.pdf               # compiled, print-ready
