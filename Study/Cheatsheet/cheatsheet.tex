@@ -1,0 +1,267 @@
+% =====================================================================
+%  Advanced NLP — 4-page exam cheat sheet (2 A4 sheets, front+back)
+%  Editable. Compile in Overleaf (pdfLaTeX) or locally: pdflatex cheatsheet.tex
+%  Layout: portrait A4, 3 columns, dense. Trim/expand to keep exactly 4 pages.
+% =====================================================================
+\documentclass[12pt]{extarticle} % extsizes: available on Overleaf. If error -> use \documentclass[12pt]{article}
+\usepackage[a4paper,margin=0.8cm]{geometry}
+\usepackage{multicol}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}            % scalable fonts (needed for small sizes + microtype)
+\usepackage[final]{microtype}
+\linespread{1.06}
+\usepackage{titlesec}
+
+% ---- compact styling ----
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1pt}
+\setlength{\columnsep}{0.6em}
+\setlist[itemize]{leftmargin=1.1em,topsep=0pt,partopsep=0pt,itemsep=0pt,parsep=0pt}
+\pagestyle{empty}
+\definecolor{hdr}{RGB}{0,70,140}
+\definecolor{key}{RGB}{150,0,0}
+
+% section/subsection styling (tight)
+\titleformat{\section}{\color{hdr}\bfseries\small}{}{0pt}{}[\vspace{-2pt}\hrule\vspace{1pt}]
+\titlespacing{\section}{0pt}{3pt}{1pt}
+\newcommand{\sub}[1]{\textcolor{key}{\textbf{#1}}}
+\newcommand{\fb}[1]{\colorbox{yellow!30}{$#1$}} % highlight a formula
+\newcommand{\fbw}[1]{\colorbox{yellow!30}{\resizebox{0.96\columnwidth}{!}{$#1$}}} % wide formula, fit to column
+
+\begin{document}
+\begin{multicols}{3}
+\raggedcolumns
+
+% ============================== PAGE 1 ==============================
+{\color{hdr}\textbf{\normalsize AdvNLP Exam Cheat Sheet}}\hfill\textbf{1/4}
+
+\section*{}
+\vspace{-12pt}
+\section{Classification Evaluation \textnormal{(L4 \(\star\star\))}}
+Confusion matrix: rows = ground truth, cols = prediction; diagonal = correct.\\
+Per class $c$ (TP/FP/FN from that class):
+\[ P_c=\tfrac{TP}{TP+FP}\quad R_c=\tfrac{TP}{TP+FN} \]
+\[ F1_c=\frac{2P_cR_c}{P_c+R_c}\quad \text{Acc}=\frac{\sum_c TP_c}{N} \]
+\sub{N/A cases:} no predictions for $c\Rightarrow$ $P$=N/A (0/0); no true $c\Rightarrow$ $R$=N/A; either undefined $\Rightarrow F1$=N/A.\\
+\sub{Averaging:}
+\[ \text{macro-}F1=\tfrac1C\textstyle\sum_c F1_c \]
+\[ \text{weighted-}F1=\frac{\sum_c n_c F1_c}{\sum_c n_c}\ (n_c=\text{support}) \]
+micro-$F1$: pool all TP/FP/FN then one $F1$ ($\approx$acc).\\
+macro = each class equal (hurts on bad rare class); weighted = by frequency.\\
+\sub{Recipe:} build matrix $\to$ per-class $P,R,F1$ $\to$ macro=avg, weighted=avg by support. Watch 0/0.\\
+\sub{Pitfall:} accuracy can be 1.0 yet useless if test set misses classes.
+
+\section{Dependency Parsing + UAS/LAS \textnormal{(L5 \(\star\star\))}}
+Arc-standard transition parser; config = (Stack, Buffer, Arcs). Stack top $=B$, 2nd-top $=A$:
+\begin{itemize}
+\item \sub{SHIFT}: buffer front $\to$ stack.
+\item \sub{LEFT-ARC(r)}: arc $B\!\to\!A$ (B head of A), pop $A$.
+\item \sub{RIGHT-ARC(r)}: arc $A\!\to\!B$ (A head of B), pop $B$.
+\end{itemize}
+Repeat until buffer empty \& stack=[ROOT].\\
+\fb{\text{UAS}=\tfrac{\#\,\text{correct heads}}{\#\,\text{tokens}}}\quad (label ignored)\\
+\fb{\text{LAS}=\tfrac{\#\,\text{correct head\&label}}{\#\,\text{tokens}}}\\
+Always \textbf{LAS $\le$ UAS}. Right head + wrong label $\Rightarrow$ UAS yes, LAS no. (Root usually excluded.)
+
+\section{POS Tagging / HMM / Viterbi \textnormal{(L5)}}
+Baselines: dict 85\%, most-freq-tag 90\%, SOTA 97\%, human 98\%.\\
+HMM: states=tags(hidden), obs=words. Assumptions: transition $P(t_i|t_{i-1})$, emission $P(w_i|t_i)$.\\
+Tag via Bayes: $\hat t=\arg\max_t P(w|t)P(t)$.\\
+\sub{Viterbi} (DP, best path): $V_{i,t}=\max_{t'}V_{i-1,t'}P(t|t')P(w_i|t)$, cost $O(n|T|^2)$.
+
+\section{Encoders / BERT \textnormal{(L3 \(\star\))}}
+Foundation model: self-supervised pretrain, reuse backbone.\\
+Static (word2vec) vs \sub{contextual} (BERT) embeddings.\\
+\fb{\text{Attn}(Q,K,V)=\text{softmax}\!\big(\tfrac{QK^\top}{\sqrt{d_k}}\big)V}\\
+$\sqrt{d_k}$ = numerical stability. Multi-head: $A$ heads $d_h=d/A$. BERT-Base $d{=}768,A{=}12,d_h{=}64$.\\
+FFN $W_2\sigma(W_1x{+}b_1){+}b_2$ ($768\!\to\!3072\!\to\!768$); residual $x{+}\text{Sub}(x)$; LayerNorm.\\
+\sub{BERT}: encoder-only, bidirectional. MLM mask \textbf{15\%}; NSP (weak, dropped later).\\
+\sub{Fine-tune classif:} prepend [CLS] $\to$ run $\to$ $\hat y=\text{softmax}(Wh_{[CLS]}{+}b)$ $\to$ argmax.\\
+Pooling: mean $\tfrac1n\sum h_i$, max.\\
+\sub{SBERT} (bi-encoder): encode sentences independently, $\cos(f(s_1),f(s_2))$, precomputable $\to$ fast. Fixes BERT $O(N^2)$ pair cost \& anisotropy. Triplet loss $\max(0,d(a,p){-}d(a,n){+}m)$.\\
+\sub{Cross-encoder}=[CLS]$s_1$[SEP]$s_2$, accurate but slow (rerun each pair). Bi-encoder=fast cosine search.
+
+\columnbreak
+% ============================== PAGE-ish continues ==============================
+{\color{hdr}\textbf{RLHF (L7 \(\star\star\))}}\hfill\textbf{}
+
+\section{Alignment: RLHF}
+Pipeline: prompts $\to$ \sub{SFT} $\to$ human preferences $\to$ \sub{reward model} $\to$ RL (\sub{PPO}).\\
+IFT/SFT: supervised on (prompt,good-resp); gives instruction-following + start policy. Self-Instruct = bootstrap data (label-first for classification).\\
+Why beyond IFT: alignment is \sub{comparative} (which is better?) $\to$ learn from preferences.\\
+\sub{Reward model} $r(x,y)$ scalar; can be smaller than LM; trained on pairwise comparisons $y_w\!\succ\!y_l|x$.\\
+\sub{Bradley-Terry}: $p^*(y_1\!\succ\!y_2|x)=\dfrac{e^{r(x,y_1)}}{e^{r(x,y_1)}+e^{r(x,y_2)}}=\sigma(r_1{-}r_2)$, \ $\sigma(z)=\tfrac1{1+e^{-z}}$. Depends only on reward \sub{difference}.\\
+\fbw{L_R=-\mathbb E_{(x,y_w,y_l)}[\log\sigma(r(x,y_w)-r(x,y_l))]}\\
+\sub{Describe the loss:} score both responses, sigmoid of score-difference = P(winner beats loser); max-likelihood of observed human choices; small loss when winner scored $\gg$ loser, large when ranked wrong. Not regression/MSE: humans give relative not absolute scores.\\
+Numbers: $r_w{=}2.0,r_l{=}1.2\Rightarrow\sigma(0.8){=}0.69$, loss $-\log0.69{=}0.37$. Wrong way $\sigma(-0.5){=}0.38$, loss $0.97$.\\
+\sub{PPO reward (KL-reg):} \[ r(x,y)=r_\phi(x,y)-\beta D_{KL}[\pi_\theta\|\pi_{SFT}] \]
+obj: $\max_\theta \mathbb E[r_\phi]-\beta D_{KL}[\pi_\theta\|\pi_{SFT}]$.\\
+\sub{Role of $\beta$:} balance reward vs staying near reference. High $\beta$=stay close (safe); low $\beta$=drift, risk \sub{reward hacking}.
+
+\section{KL Divergence \textnormal{(\(\star\star\) compute)}}
+\fb{D_{KL}(P\|Q)=\sum_x P(x)\log\tfrac{P(x)}{Q(x)}}\\
+$\ge0$; $=0$ iff $P{=}Q$; \sub{not symmetric}. $P$=true/ground-truth, $Q$=model/measured. Use $\log_2$ for \sub{bits} ($\log_2 z=\ln z/\ln2$).\\
+Ex: $P{=}[.5,.3,.2],Q{=}[.4,.4,.2]$:\\
+$.5\log_2\tfrac{.5}{.4}+.3\log_2\tfrac{.3}{.4}+0=.1609-.1245=\mathbf{.036}$ bits.\\
+$Q{=}[.85,.10,.05]$: $-.383+.476+.4=\mathbf{.493}$ bits (worse).
+
+\section{Hallucination types \textnormal{(L10)}}
+\sub{Factuality} = false vs the world. \sub{Faithfulness} = inconsistent with prompt/context/own reasoning.
+
+\columnbreak
+{\color{hdr}\textbf{DPO (L8 \(\star\star\))}}\hfill\textbf{2/4}
+
+\section{DPO — 13-step derivation}
+\sub{One sentence:} DPO shifts probability mass toward completions humans like and away from disliked ones, \emph{directly} from preference pairs—no reward model, no RL.\\
+Why: RLHF has many parts (reward model + PPO loop + instability). DPO = simple classification-style loss, stable, cheap.\\
+\textbf{Steps:}
+\begin{enumerate}[leftmargin=1.3em,itemsep=0pt]
+\item Start KL-reg obj: $\max_\pi \mathbb E[r]-\beta D_{KL}[\pi\|\pi_{ref}]$.
+\item Expand KL $\to \mathbb E[r-\beta\log\tfrac{\pi}{\pi_{ref}}]$.
+\item To min: $\min_\pi \mathbb E[\log\tfrac{\pi}{\pi_{ref}}-\tfrac1\beta r]$.
+\item Define \sub{partition fn} $Z(x)=\sum_y \pi_{ref}(y|x)e^{r/\beta}$.
+\item Target $\pi^*=\tfrac1{Z(x)}\pi_{ref}e^{r/\beta}$ (valid dist).
+\item Obj $\to \min_\pi \mathbb E[D_{KL}(\pi\|\pi^*)-\log Z(x)]$.
+\item $\log Z$ indep of $\pi\Rightarrow$ min $D_{KL}(\pi\|\pi^*)$; KL$\ge0\Rightarrow \pi=\pi^*$.
+\item Invert: $r(x,y)=\beta\log\tfrac{\pi^*}{\pi_{ref}}+\beta\log Z(x)$.
+\item Bradley-Terry: only reward \sub{differences} matter.
+\item \sub{$Z(x)$ cancels} in the difference (same for $y_w,y_l$).
+\item $p(y_w\!\succ\!y_l|x)=\sigma\!\big(\beta\log\tfrac{\pi^*(y_w)}{\pi_{ref}(y_w)}-\beta\log\tfrac{\pi^*(y_l)}{\pi_{ref}(y_l)}\big)$.
+\item Parameterize $\pi^*\!\to\!\pi_\theta$.
+\item DPO loss (below).
+\end{enumerate}
+\fb{L_{DPO}=-\mathbb E\big[\log\sigma(\beta\log\tfrac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)}-\beta\log\tfrac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)})\big]}\\
+Closed-form optimal policy: $\pi^*=\tfrac1{Z(x)}\pi_{ref}e^{(1/\beta)r}$.
+
+\section{DPO — Puccinelli Q\&A (memorize)}
+\begin{itemize}
+\item \sub{Why introduce $Z(x)$?} to \sub{normalize} the reward-tilted $\pi_{ref}$ so $\pi^*$ sums to 1 (we shift mass $\Rightarrow$ must renormalize).
+\item \sub{Why does it disappear?} BT uses reward \sub{difference}; $\beta\log Z(x)$ depends only on $x$ (same prompt) $\Rightarrow$ identical for $y_w,y_l\Rightarrow$ cancels.
+\item \sub{Why need it gone?} $Z(x)=\sum$ over \sub{all completions} = intractable.
+\item \sub{Why "normalization constant"?} rescales weights to sum 1; constant in $y$ but \sub{changes with prompt $x$}.
+\item \sub{Role of $\beta$?} strength of reward tilt vs reference proximity (implicit KL).
+\item \sub{Role of win term?} $\log\tfrac{\pi_\theta(y_w)}{\pi_{ref}(y_w)}$ raises preferred response prob vs ref; loser term lowers rejected.
+\end{itemize}
+
+\section{Benchmarking \textnormal{(L10 \(\star\))}}
+Benchmark = dataset(s)+metric. \sub{GLUE} multi-task NLU.\\
+Task$\to$metric: CoLA$\to$\sub{MCC}; SST-2$\to$acc; MRPC$\to$acc/F1; STS-B$\to$\sub{Pearson/Spearman}; MNLI/QNLI/RTE/WNLI$\to$acc.\\
+\fbw{\text{MCC}=\tfrac{TP\cdot TN-FP\cdot FN}{\sqrt{(TP{+}FP)(TP{+}FN)(TN{+}FP)(TN{+}FN)}}}\\
+Uses all 4 cells (F1 ignores TN). Ex: 90/10, always "yes": acc=.90 but \sub{MCC=0}.\\
+\fb{\rho=1-\tfrac{6\sum d_i^2}{n(n^2-1)}}, $d_i$=rank diff. Reversed ranks $\Rightarrow\rho=-1$.\\
+NLI: premise+hyp $\to$ entail/contradict/neutral. RTE=binary. WNLI=Winograd pronoun.\\
+Evolution: GLUE$\to$SuperGLUE$\to$HellaSwag$\to$MMLU(57 subj)$\to$MMMU(multimodal). \sub{Contamination}: model saw test online $\to$ inflated. \sub{LiveBench}: rolling, objective scoring.
+
+\columnbreak
+{\color{hdr}\textbf{Text-to-Speech \& Tokenization}}\hfill\textbf{3/4}
+
+\section{Text-to-Speech \textnormal{(L14)}}
+Two stages (trained separately):\\
+1) text$\to$\sub{mel-spectrogram} (Tacotron 2: char emb$\to$conv$\to$biLSTM$\to$attn$\to$AR decoder, 80-dim log-mel + stop).\\
+2) mel$\to$waveform = \sub{vocoder} (WaveNet: AR per-sample $P(x_t|x_{<t})$, dilated causal conv, $\mu$-law 256 cls).\\
+TTS speaker-dependent; ASR speaker-indep. Needs text normalization.\\
+\sub{MOS}: humans rate naturalness \sub{1–5}, MOS=mean. \sub{A/B test}: same sentence, pick better, tally. No good automatic TTS metric.\\
+mel $m=2595\log_{10}(1{+}f/700)$.
+
+\section{Tokenization \& Embeddings \textnormal{(L1)}}
+Subword balances OOV vs seq length.\\
+\sub{BPE}: merge \sub{most frequent pair} iteratively. \sub{WordPiece}: best score $\tfrac{P(xy)}{P(x)P(y)}$, ``\#\#''. \sub{Unigram}: drop low-impact tokens. SentencePiece: raw text, space=``\_''.\\
+\sub{n-gram} ($m$): $P(w_k|w_{k-m..k-1})$, MLE=counts; zeros$\to$smoothing/backoff.\\
+\fb{\text{PP}(W)=P(w_1..w_N)^{-1/N}=2^{H(W)}}\ lower=better; $\downarrow$ as order $\uparrow$.\\
+\sub{word2vec}: CBOW (predict center, fast) vs Skip-gram (predict context, more samples). SGNS neg-sample $\propto f^{0.75}$. fastText=char n-grams.
+
+\section{MT / Transformers \textnormal{(L2)}}
+RNN $h_t{=}g(Uh_{t-1}{+}Wx_t)$; vanish/explode$\to$LSTM gates (forget/input/output).\\
+Seq2seq bottleneck = final encoder state. \sub{Attention}: $\alpha{=}\text{softmax}(e)$, ctx $\sum\alpha_i h_i$.\\
+\sub{Transformer}: $Z{=}\text{softmax}(QK^\top/\sqrt{d_k})V$; multi-head (8, $d{=}512$, $d_k{=}64$); masked decoder self-attn ($-\infty$ above diag); cross-attn (Q dec, K,V enc); \sub{positional enc} (attn is permutation-invariant); FFN+residual+LN.\\
+Train parallel (teacher forcing); infer autoregressive. KV-cache; GQA/MQA share K/V.\\
+Trap: attn for token $i$ uses query $q_i$ + \sub{all keys}.
+
+\section{Text Generation / Decoding \textnormal{(L6)}}
+\sub{Greedy} argmax; \sub{beam} keep top-$k$ paths (directed: MT/summary).\\
+\sub{Temperature} $P\propto e^{u_l/t}$: $t{<}1$ sharpen, $t{>}1$ flatten.\\
+\sub{Top-k}: among k highest (fixed). \sub{Top-p}: smallest set cum$\ge p$ (adaptive). Sampling=open-ended.\\
+\sub{LoRA}: $h{=}x(W{+}AB)$, freeze $W$, params $r(d{+}k)\!\ll\!dk$. QLoRA = +4-bit base.\\
+Instruction-tune: CE on (instr,resp), mask instr tokens.
+
+\columnbreak
+{\color{hdr}\textbf{ICL, RAG, Agents, ASR}}\hfill\textbf{4/4}
+
+\section{In-Context Learning \textnormal{(L9)}}
+ICL: condition with examples, \sub{no weight update}; emergent at scale. zero/one/few-shot.\\
+Roles: System (rules), User (task/data), Assistant (outputs).\\
+\sub{CoT} ``think step by step'' $\to$ better math/logic. \sub{Self-consistency}=sample$\times$N + majority vote. \sub{ReAct}=Thought$\to$Action$\to$Observation.\\
+Tips: simple prompts, instructions over many constraints, document (model,temp,top-p).
+
+\section{RAG \textnormal{(L11)}}
+Retrieve chunks $\to$ augment prompt $\to$ generate. Fixes stale/parametric knowledge w/o retraining.\\
+Pipeline: chunk$\to$embed$\to$index(vector DB)$\to$embed query$\to$similarity$\to$prompt$\to$generate.\\
+\sub{Bi-encoder/SBERT} retrieve (fast, precompute); \sub{cross-encoder} rerank (accurate, slow).\\
+$\cos(x,y){=}\tfrac{x^\top y}{\|x\|\|y\|}$; normalized$\Rightarrow$cos$\equiv$dot$\equiv$L2 rank; $\|x{-}y\|^2{=}2{-}2\cos$.\\
+Sparse: \sub{BM25}. Hybrid: \sub{RRF} $\sum_i\tfrac1{k+r_i(d)}$. ANN: IVF (k-means), HNSW (graph).\\
+\sub{MRR}$=\tfrac1{|Q|}\sum\tfrac1{\text{rank}_i}$; \sub{NDCG}$=\tfrac{DCG}{IDCG}$, $DCG{=}\sum\tfrac{2^{rel_i}-1}{\log_2(i{+}1)}$.\\
+RAGAS: Faithfulness = (claims supported)/(claims in answer).
+
+\section{Agentic AI \textnormal{(L12)}}
+Agent: sets goals, plans, \sub{takes actions} (vs chatbot responds). Memory: short=context, long=vector DB/RAG. Tools: search/code/APIs.\\
+\sub{ReAct} loop. Evaluate \sub{full transcript} (not just final). \sub{pass@k}=success over k trials. Risks: cascading failures, over-privilege, reward hacking.
+
+\section{Speech-to-Text / ASR \textnormal{(L13)}}
+audio$\to$log-mel ($\sim$80 ch, 25ms). $dB{=}10\log_{10}(I/I_{min})$.\\
+\sub{wav2vec2}: CNN+Transformer, self-supervised contrastive + product quantization, fine-tune \sub{CTC}.\\
+\sub{CTC}: blank token; many alignments$\to$one output (collapse repeats, drop blanks); loss $-\log\sum_{align}\prod_t p(a_t|h_t)$; add LM at decode.\\
+\sub{Whisper}: enc-dec, weak supervision (680k h), multitask; robust, can loop.\\
+\fb{\text{WER}=\tfrac{S+D+I}{N}}.
+
+\section{Numeric quick-reference \textnormal{(calc)}}
+\sub{Sigmoid} $\sigma(z)=\tfrac1{1+e^{-z}}$: $\sigma(0){=}.50$, $\sigma(.5){=}.62$, $\sigma(.8){=}.69$, $\sigma(1){=}.73$, $\sigma(1.5){=}.82$, $\sigma(2){=}.88$. $\sigma(-z){=}1{-}\sigma(z)$.\\
+$-\log(\cdot)$ (NLL): $-\log.69{=}.37$, $-\log.5{=}.69$, $-\log.38{=}.97$, $-\log.9{=}.105$.\\
+\sub{$\log_2$}: $\log_2 1.25{=}.322$, $\log_2.75{=}-.415$, $\log_2 1.5{=}.585$, $\log_2 2{=}1$, $\log_2 3{=}1.585$, $\log_2 4{=}2$. ($\log_2 z=\ln z/\ln2$, $\ln2{=}.693$.)
+
+\section{Worked: classification}
+5 sentences, classes CH/FR/DE. GT$\to$Pred: CH$\to$CH, FR$\to$DE, DE$\to$CH, CH$\to$FR, FR$\to$FR.\\
+CH: TP1,FP1,FN1$\Rightarrow P{=}R{=}\tfrac12,F1{=}\tfrac12$. FR: same $F1{=}\tfrac12$. DE: TP0$\Rightarrow F1{=}0$.\\
+Supports CH2,FR2,DE1. macro$=\tfrac{.5+.5+0}{3}=\tfrac13$. weighted$=\tfrac{2(.5)+2(.5)+0}{5}=.4$.
+
+\section{Worked: UAS/LAS}
+6 tokens, (gold head,label | pred): t4 right head wrong label, t5 wrong head; rest correct.\\
+Correct heads = 5/6 $\Rightarrow$ \sub{UAS}$=.833$. Correct head+label = 4/6 $\Rightarrow$ \sub{LAS}$=.667$.
+
+\section{BLEU \textnormal{(L1/L2)}}
+$\text{BLEU}=BP\cdot\exp(\sum_n w_n\log p_n)$, $BP=\min(1,e^{1-r/c})$, $p_n$=\sub{clipped} n-gram precision (cap match count by ref count). Precision-based; ROUGE=recall-based.
+
+\section{Worked: RLHF / MCC / Spearman}
+\sub{Reward NLL}: $r_w{=}2.0,r_l{=}1.2$: $P{=}\sigma(0.8){=}.69$, loss $-\log.69{=}.37$ (good). $r_w{=}1.0,r_l{=}1.5$: $\sigma(-.5){=}.38$, loss $.97$ (bad).\\
+\sub{MCC}: 90 ok/10 not, always "ok": TP90,FP10,TN0,FN0; acc$=.90$ but MCC$=\tfrac{90\cdot0-10\cdot0}{\dots}=0$.\\
+\sub{Spearman}: R$=[1,2,3,4,5]$, S$=[5,4,3,2,1]$: $d^2=[16,4,0,4,16]$,$\sum{=}40$; $\rho{=}1-\tfrac{6\cdot40}{5\cdot24}{=}-1$.
+
+\section{Worked: retrieval / WER}
+\sub{NDCG@5}, rel$=[0,3,2,1,0]$: $DCG=0+\tfrac{2^3-1}{\log_2 3}+\tfrac{2^2-1}{\log_2 4}+\tfrac{1}{\log_2 5}+0=0+4.42+1.5+0.43=6.35$; IDCG$=9.39\Rightarrow$NDCG$=.68$.\\
+\sub{WER}: ref 10 words, 1S+1D+2I $\Rightarrow (1{+}1{+}2)/10=.40$.\\
+\sub{Cosine}: unit vecs, $\cos{=}.6\Rightarrow\|x{-}y\|^2{=}2{-}1.2{=}.8$.\\
+\sub{LoRA}: $4096^2{=}16.7$M full; $r{=}4\Rightarrow4(4096{+}4096){=}32768$ ($\sim$512$\times$ fewer).
+
+\section{Fact bank / traps}
+\begin{itemize}
+\item Lower perplexity = better LM ($\downarrow$ with n-gram order).
+\item BPE merges \sub{frequent pair}; WordPiece by \sub{score}; Unigram \sub{prunes}.
+\item Temp $t{<}1$ sharpen, $t{>}1$ random; top-$k$ fixed, top-$p$ adaptive.
+\item Attn weights: \sub{query $q_i$ vs all keys}; $\sqrt{d_k}$=stability.
+\item BLEU=precision+BP; ROUGE=recall.
+\item KL: not symmetric, $\ge0$, $=0$ iff equal; use \sub{bits}.
+\item LAS$\le$UAS always.
+\item Accuracy misleads on imbalance / missing classes (use macro-F1, MCC).
+\item DPO: no reward model, no RL; partition fn cancels.
+\item Bi-encoder=retrieve(fast); cross-encoder=rerank(accurate,slow).
+\item RLHF reward $=r_\phi-\beta\,$KL; high $\beta$=stay near SFT.
+\end{itemize}
+
+\section{Exam tactics}
+Need only \sub{3.5/6} (5.5 pregrade @25\%). Bank MC + quick calcs first, then text answers. State assumptions if unclear. KL in \sub{bits} ($\log_2$). Show formula+plug-in. \sub{Must-compute:} P/R/F1, macro/weighted, UAS/LAS, KL(bits), reward/DPO sigmoid-NLL, MCC, Spearman, WER, perplexity, cosine, NDCG.
+
+\end{multicols}
+\end{document}
